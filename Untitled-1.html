@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Riegos - Huerto de Vegetales</title>
+    <style>
+        /* Reset y estilos generales */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f8; /* Fondo suave */
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        /* Encabezado */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            max-width: 800px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .disclaimer {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            border: 1px solid #bbdefb;
+        }
+
+        /* Contenedor de Tarjetas (Grid) */
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Estilo de la Tarjeta */
+        .card {
+            background-color: #ffffff;
+            border-radius: 15px; /* Bordes redondeados */
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05); /* Sombra suave */
+            padding: 25px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-top: 5px solid #4caf50; /* Borde verde por defecto */
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        /* Detalles dentro de la tarjeta */
+        .card-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .label {
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .value {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        /* Badge de Estado */
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-active {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+
+        .status-inactive {
+            background-color: #eceff1;
+            color: #546e7a;
+            border: 1px solid #cfd8dc;
+        }
+
+        /* Alerta de Humedad Baja */
+        .alert-low-humidity {
+            background-color: #fff5f5; /* Fondo rojizo suave */
+            border-top-color: #ef5350; /* Borde superior rojo */
+        }
+
+        .alert-low-humidity .value-humedad {
+            color: #c62828;
+            font-weight: 800;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 50px;
+            color: #95a5a6;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Monitor de Riegos - Huerto de Vegetales</h1>
+        <div class="disclaimer">
+            ℹ️ Nota: Esto es solo una simulación visual de un sistema de monitoreo.
+        </div>
+    </header>
+
+    <div id="app" class="card-container">
+        <!-- Las tarjetas se generarán aquí mediante JavaScript -->
+    </div>
+
+    <footer>
+        &copy; 2023 Sistema de Invernadero Inteligente v1.0
+    </footer>
+
+    <script>
+        // Datos de ejemplo según la estructura solicitada
+        const datosHuerto = [
+            {
+                zonaId: 1,
+                tipoDeCultivo: "Tomates",
+                humedadSuelo: 55,
+                temperatura: 23.5,
+                estaRegando: false
+            },
+            {
+                zonaId: 2,
+                tipoDeCultivo: "Lechugas",
+                humedadSuelo: 62,
+                temperatura: 21.0,
+                estaRegando: false
+            },
+            {
+                zonaId: 3,
+                tipoDeCultivo: "Zanahorias",
+                humedadSuelo: 35, // Humedad baja para probar la alerta
+                temperatura: 24.2,
+                estaRegando: true // Estado regando activado
+            },
+            {
+                zonaId: 4,
+                tipoDeCultivo: "Pimentones",
+                humedadSuelo: 28, // Muy baja
+                temperatura: 26.5,
+                estaRegando: false
+            }
+        ];
+
+        // Función para renderizar las tarjetas
+        function renderizarMonitor() {
+            const contenedor = document.getElementById('app');
+            let htmlContent = '';
+
+            datosHuerto.forEach(zona => {
+                // Determinar si la humedad es crítica (< 40%)
+                const esCritico = zona.humedadSuelo < 40;
+                const claseAlerta = esCritico ? 'alert-low-humidity' : '';
+
+                // Determinar textos y estilos para el estado de riego
+                const textoRiego = zona.estaRegando ? 'Regando 💧' : 'Apagado';
+                const claseEstado = zona.estaRegando ? 'status-active' : 'status-inactive';
+
+                htmlContent += `
+                    <div class="card ${claseAlerta}">
+                        <h2>${zona.tipoDeCultivo}</h2>
+                        
+                        <div class="card-detail">
+                            <span class="label">ID Zona:</span>
+                            <span class="value">#${zona.zonaId}</span>
+                        </div>
+
+                        <div class="card-detail">
+                            <span class="label">Temperatura:</span>
+                            <span class="value">${zona.temperatura} °C</span>
+                        </div>
+
+                        <div class="card-detail">
+                            <span class="label">Humedad Suelo:</span>
+                            <span class="value value-humedad">${zona.humedadSuelo} %</span>
+                        </div>
+
+                        <div class="card-detail">
+                            <span class="label">Estado Riego:</span>
+                            <span class="status-badge ${claseEstado}">${textoRiego}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            contenedor.innerHTML = htmlContent;
+        }
+
+        // Ejecutar la función al cargar la página
+        window.onload = renderizarMonitor;
+    </script>
+</body>
+</html>
