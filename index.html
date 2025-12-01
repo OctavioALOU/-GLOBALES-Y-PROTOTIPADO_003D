@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuji Agro-Monitor Pro</title>
+    
+    <!-- Fuentes Internacionales -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=Noto+Sans+SC:wght@300;400;700&family=Quicksand:wght@400;700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- ESTILOS VISUALES (TEMA FUJI ORIGINAL) --- */
+        :root {
+            --lily-red: #d50000;
+            --lily-blue: #2962ff;
+            --leaf-green: #2e7d32;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --text-main: #263238;
+            --gradient-ui: linear-gradient(135deg, var(--lily-red), var(--lily-blue));
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Quicksand', 'Noto Sans JP', 'Noto Sans SC', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            
+            /* FONDO: Monte Fuji + Sakura */
+            background: url('https://images.unsplash.com/photo-1490806843928-846604981d54?q=80&w=2071&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
+            transition: background 1s ease;
+        }
+
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(3px);
+            z-index: -1; pointer-events: none;
+        }
+
+        /* --- BOTÓN DE MÚSICA FLOTANTE --- */
+        #music-toggle {
+            position: fixed; top: 20px; right: 20px; z-index: 2500;
+            background: rgba(255,255,255,0.9); border: none; padding: 10px 15px;
+            border-radius: 30px; cursor: pointer; font-size: 1.2rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: none; /* Se muestra al entrar */
+            transition: transform 0.3s;
+        }
+        #music-toggle:hover { transform: scale(1.1); }
+
+        /* --- PANTALLA DE SELECCIÓN DE IDIOMA --- */
+        #lang-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(15px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 2000; transition: opacity 0.8s ease;
+        }
+        
+        .lang-card {
+            background: white; padding: 40px; border-radius: 25px;
+            text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            border: 1px solid white; max-width: 800px;
+        }
+
+        .lang-title { 
+            font-size: 2rem; margin-bottom: 30px; 
+            background: var(--gradient-ui); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        
+        .lang-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; width: 100%; }
+
+        .lang-btn {
+            padding: 15px; font-size: 1rem; border: none; border-radius: 15px;
+            cursor: pointer; transition: all 0.3s ease; font-weight: bold;
+            background-color: #f5f5f5; color: #455a64;
+            border-bottom: 3px solid var(--lily-blue);
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .lang-btn:hover { background: var(--gradient-ui); color: white; transform: translateY(-3px); }
+
+        .lang-icon {
+            width: 35px; height: 35px; border-radius: 50%; object-fit: cover;
+            border: 2px solid #ff8a80; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* --- INTERFAZ PRINCIPAL --- */
+        .main-content { display: none; width: 100%; display: flex; flex-direction: column; align-items: center; animation: fadeIn 1s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        header { text-align: center; margin-bottom: 30px; max-width: 800px; text-shadow: 0 2px 10px rgba(255,255,255,1); }
+        h1 { 
+            background: var(--gradient-ui); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 10px; font-size: 2.8rem; font-weight: 800;
+        }
+        
+        .disclaimer {
+            background: white; color: #455a64; padding: 6px 15px; border-radius: 20px;
+            display: inline-block; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        /* --- DASHBOARD --- */
+        .info-bar { display: flex; gap: 20px; width: 100%; max-width: 1200px; margin-bottom: 30px; flex-wrap: wrap; }
+
+        .info-card {
+            flex: 1; min-width: 300px; border-radius: 20px; padding: 25px;
+            color: white; box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            text-align: center; backdrop-filter: blur(5px);
+        }
+
+        .clock-card { background: linear-gradient(135deg, var(--lily-red), #ff8a80); }
+        .weather-card { background: linear-gradient(135deg, var(--lily-blue), #80d8ff); }
+
+        .clock-time { 
+            font-family: 'Roboto Mono', monospace; font-size: 2.5rem; 
+            font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; 
+        }
+        .clock-ms { font-size: 0.5em; opacity: 0.8; font-weight: 400; }
+        .schedule-badge { margin-top: 10px; background: rgba(0,0,0,0.2); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; display: inline-block; }
+
+        /* --- TARJETAS --- */
+        .card-container {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px; width: 100%; max-width: 1200px; margin-bottom: 40px;
+        }
+
+        .card {
+            background-color: var(--glass-bg); border-radius: 20px; padding: 25px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05); backdrop-filter: blur(10px);
+            border: 1px solid white; transition: transform 0.3s ease; position: relative;
+            border-top: 5px solid var(--leaf-green);
+        }
+        .card:hover { transform: translateY(-8px); }
+        .card h2 { font-size: 1.5rem; margin-bottom: 15px; color: #37474f; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        
+        .card-detail { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; }
+        .label { color: #546e7a; }
+        .value { font-weight: bold; color: #263238; }
+
+        .status-badge { padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; font-weight: bold; }
+        .status-active { background: #e8f5e9; color: var(--leaf-green); border: 1px solid #c8e6c9; animation: pulse 2s infinite; }
+        .status-inactive { background: #cfd8dc; color: #546e7a; }
+        .alert-low { background-color: #ffebee; } .alert-low .value { color: var(--lily-red); }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        /* --- BOTONES Y TABLA --- */
+        .stats-section { width: 100%; max-width: 1200px; }
+        .stats-card { background-color: var(--glass-bg); border-radius: 20px; padding: 25px; }
+        .stats-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        
+        .btn-capture {
+            background: var(--gradient-ui); color: white; border: none; padding: 12px 24px;
+            border-radius: 50px; cursor: pointer; font-weight: bold; 
+            box-shadow: 0 4px 15px rgba(41, 98, 255, 0.4); display: flex; align-items: center; gap: 8px;
+        }
+
+        .stats-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .stats-table th { background-color: rgba(41, 98, 255, 0.1); color: #1a237e; padding: 10px; text-align: left; }
+        .stats-table td { padding: 10px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); display: none;
+            justify-content: center; align-items: center; z-index: 3000;
+            backdrop-filter: blur(8px);
+        }
+        .modal-content {
+            background-color: white; padding: 30px; border-radius: 20px;
+            width: 95%; max-width: 600px; position: relative;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: floatUp 0.4s ease-out;
+            max-height: 90vh; overflow-y: auto;
+        }
+        @keyframes floatUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .section-title { font-size: 0.9rem; color: #888; text-transform: uppercase; margin: 15px 0 5px 0; border-bottom: 1px solid #eee; }
+        .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 10px; }
+        .report-item { background: #f8f9fa; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #eee; }
+        .report-item span { display: block; font-size: 0.75rem; color: #666; margin-bottom: 5px; }
+        .report-item strong { display: block; font-size: 1.1rem; color: #333; }
+        .close-btn { background-color: #37474f; color: white; border: none; padding: 12px; border-radius: 12px; width: 100%; cursor: pointer; margin-top: 20px; }
+
+        footer { margin-top: 50px; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- ELEMENTO DE AUDIO (Chopin - Tristesse) -->
+    <!-- Se activa al seleccionar idioma -->
+    <audio id="bg-music" loop>
+        <source src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Frederic_Chopin_-_Etude_no._3_in_e_major%2C_op._10_-_tristesse.ogg" type="audio/ogg">
+    </audio>
+
+    <!-- Botón de Control de Música -->
+    <button id="music-toggle" onclick="toggleMusic()">🎵 Music On</button>
+
+    <!-- SELECCIÓN DE IDIOMA -->
+    <div id="lang-screen">
+        <div class="lang-card">
+            <div class="lang-title">Fuji Agro-Monitor</div>
+            <p style="margin-bottom: 20px; color: #666;">Select Language / Seleccione Idioma / 言語を選択</p>
+            
+            <div class="lang-grid">
+                <button class="lang-btn" onclick="setLanguage('en')">
+                    English 
+                    <img src="https://media1.tenor.com/m/2Gh3c1NQ8UkAAAAC/freedom-america.gif" class="lang-icon" alt="en">
+                </button>
+                <button class="lang-btn" onclick="setLanguage('es')">
+                    Español 
+                    <img src="https://media3.giphy.com/media/3rgXBQBQyt98Dvh1sI/giphy.gif" class="lang-icon" alt="es">
+                </button>
+                <button class="lang-btn" onclick="setLanguage('jp')">
+                    日本語 
+                    <img src="https://pa1.aminoapps.com/6554/66ac70decf8992c78192fede3f7c9bfdfac83f68_hq.gif" class="lang-icon" alt="jp">
+                </button>
+                <button class="lang-btn" onclick="setLanguage('cn')">
+                    中文 
+                    <img src="https://i.pinimg.com/originals/78/b8/31/78b8318d4c4f19c8ffb1ce0c2805bd9f.gif" class="lang-icon" alt="cn">
+                </button>
+                <button class="lang-btn" onclick="setLanguage('pt')">
+                    Português 
+                    <img src="https://media.tenor.com/V68USSyot3sAAAAM/dance-uporot.gif" class="lang-icon" alt="pt">
+                </button>
+                <button class="lang-btn" onclick="setLanguage('fr')">
+                    Français 
+                    <img src="https://media.tenor.com/dvoX8OaXIFMAAAAM/moe-simpsons.gif" class="lang-icon" alt="fr">
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERFAZ PRINCIPAL -->
+    <div id="main-interface" class="main-content" style="display: none;">
+        
+        <header>
+            <h1 id="txt-title">Monitor de Vegetales</h1>
+            <div class="disclaimer" id="txt-disclaimer">ℹ️ Scientific System</div>
+        </header>
+
+        <div class="info-bar">
+            <!-- Reloj -->
+            <div class="info-card clock-card">
+                <div id="reloj" class="clock-time">00:00:00<span class="clock-ms">.000</span></div>
+                <div id="fecha" class="clock-date">--</div>
+                <div id="sched-info" class="schedule-badge">⏰ Next: --:--</div>
+            </div>
+            <!-- Clima -->
+            <div class="info-card weather-card">
+                <div id="weather-loc" style="font-size: 0.9rem; margin-bottom: 5px;">📍 GPS</div>
+                <div id="weather-loading" style="font-size: 0.8rem;">...</div>
+                <div id="weather-content" style="display: none;">
+                    <div style="display:flex; justify-content:center; align-items:center; gap:10px;">
+                        <span id="weather-icon" style="font-size: 2.5rem;">🌤️</span>
+                        <span id="weather-temp" class="weather-temp">--°C</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="app" class="card-container"></div>
+
+        <div class="stats-section">
+            <div class="stats-card">
+                <div class="stats-header">
+                    <h3 id="txt-history">Logs</h3>
+                    <button class="btn-capture" onclick="generarInforme()">
+                        <span id="txt-btn-report">🔬 Full Report</span>
+                    </button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th id="th-date">Date</th>
+                                <th id="th-time">Time</th>
+                                <th id="th-zone">Zone</th>
+                                <th id="th-temp">Temp</th>
+                                <th id="th-hum">Hum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-stats"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer>&copy; 2025 Fuji Vegetable System / 富士野菜システム</footer>
+    </div>
+
+    <!-- MODAL INFORME -->
+    <div id="modalReporte" class="modal-overlay">
+        <div class="modal-content">
+            <div style="border-bottom: 1px solid #eee; margin-bottom: 15px;">
+                <h2 id="modal-title" style="color: var(--lily-blue);">Technical Report</h2>
+                <p id="modal-fecha" style="color: #666; font-size: 0.9rem;"></p>
+            </div>
+            <div class="section-title">🌱 Soil & Irrigation</div>
+            <div class="report-grid">
+                <div class="report-item"><span id="lbl-soil-hum">Soil Humidity</span><strong id="avg-soil-hum" style="color: #2e7d32;">--</strong></div>
+                <div class="report-item"><span id="lbl-act-irr">Active Irrigation</span><strong id="active-water">--</strong></div>
+            </div>
+            <div class="section-title">☁️ Atmosphere</div>
+            <div class="report-grid">
+                <div class="report-item"><span id="lbl-air-temp">Air Temp</span><strong id="avg-air-temp">--</strong></div>
+                <div class="report-item"><span id="lbl-rel-hum">Relative Hum (RH)</span><strong id="avg-rel-hum" style="color: #0277bd;">--</strong></div>
+                <div class="report-item"><span id="lbl-dew-point">Dew Point</span><strong id="val-dew-point">--</strong></div>
+                <div class="report-item"><span id="lbl-vpd">VPD (kPa)</span><strong id="val-vpd" style="color: #d84315;">--</strong></div>
+            </div>
+            <div id="general-status" style="padding: 10px; text-align: center; border-radius: 10px; margin: 15px 0; font-weight: bold; background: #eee;">--</div>
+            <button class="close-btn" onclick="cerrarModal()" id="btn-close">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN ---
+        let currentLang = 'en';
+        
+        const langData = {
+            en: {
+                title: "Fuji Veggie Monitor", disclaimer: "ℹ️ Scientific System Active",
+                loading: "Loading...", loc_denied: "No GPS", loc_label: "Location",
+                history_title: "📊 Data Logs", btn_report: "🔬 Scientific Report",
+                th_date: "Date", th_time: "Time", th_zone: "Crop", th_temp: "Temp", th_hum: "Soil Hum",
+                temp_label: "🌡️ Temp:", soil_label: "🌱 Soil Hum:", air_label: "☁️ Air RH:", status_label: "Status:",
+                status_on: "Watering", status_off: "Idle",
+                modal_title: "📄 Environmental Analysis",
+                lbl_soil_hum: "Avg Soil Hum", lbl_act_irr: "Active Zones",
+                lbl_air_temp: "Avg Air Temp", lbl_rel_hum: "Relative Hum (RH)",
+                lbl_dew_point: "Dew Point", lbl_vpd: "VPD (kPa)",
+                status_ok: "✅ OPTIMAL CONDITIONS", status_warn: "⚠️ CHECK HUMIDITY",
+                btn_close: "Close Report", sched_next: "⏰ Next Water:",
+                music_on: "🎵 Music On", music_off: "🔇 Music Off",
+                names: ["Tomatoes", "Lettuce", "Carrots", "Peppers", "System"]
+            },
+            es: {
+                title: "Monitor Vegetales Fuji", disclaimer: "ℹ️ Sistema Científico Activo",
+                loading: "Cargando...", loc_denied: "Sin GPS", loc_label: "Ubicación",
+                history_title: "📊 Historial", btn_report: "🔬 Informe Científico",
+                th_date: "Fecha", th_time: "Hora", th_zone: "Cultivo", th_temp: "Temp", th_hum: "Hum. Suelo",
+                temp_label: "🌡️ Temp:", soil_label: "🌱 Hum. Suelo:", air_label: "☁️ Hum. Aire:", status_label: "Estado:",
+                status_on: "Regando", status_off: "Inactivo",
+                modal_title: "📄 Análisis Ambiental",
+                lbl_soil_hum: "Hum. Suelo Prom.", lbl_act_irr: "Zonas Riego",
+                lbl_air_temp: "Temp. Aire Prom.", lbl_rel_hum: "Hum. Relativa (HR)",
+                lbl_dew_point: "Punto de Rocío", lbl_vpd: "DPV (kPa)",
+                status_ok: "✅ CONDICIONES ÓPTIMAS", status_warn: "⚠️ REVISAR HUMEDAD",
+                btn_close: "Cerrar Informe", sched_next: "⏰ Próximo Riego:",
+                music_on: "🎵 Música On", music_off: "🔇 Música Off",
+                names: ["Tomates", "Lechugas", "Zanahorias", "Pimentones", "Sistema"]
+            },
+            jp: {
+                title: "富士野菜モニター", disclaimer: "ℹ️ 科学的システム有効",
+                loading: "読み込み中...", loc_denied: "GPSなし", loc_label: "現在地",
+                history_title: "📊 ログ履歴", btn_report: "🔬 科学レポート",
+                th_date: "日付", th_time: "時間", th_zone: "作物", th_temp: "気温", th_hum: "土壌湿度",
+                temp_label: "🌡️ 気温:", soil_label: "🌱 土壌湿度:", air_label: "☁️ 大気湿度:", status_label: "状態:",
+                status_on: "散水中", status_off: "待機",
+                modal_title: "📄 環境分析レポート",
+                lbl_soil_hum: "平均土壌湿度", lbl_act_irr: "稼働ゾーン",
+                lbl_air_temp: "平均気温", lbl_rel_hum: "相対湿度 (RH)",
+                lbl_dew_point: "露点温度", lbl_vpd: "飽差 (VPD)",
+                status_ok: "✅ 環境良好", status_warn: "⚠️ 湿度注意",
+                btn_close: "閉じる", sched_next: "⏰ 次回の散水:",
+                music_on: "🎵 音楽オン", music_off: "🔇 音楽オフ",
+                names: ["トマト", "レタス", "ニンジン", "ピーマン", "システム"]
+            },
+            cn: { title: "富士蔬菜监测仪", disclaimer: "ℹ️ 科学系统激活", loading: "加载中...", loc_denied: "无GPS", loc_label: "位置", history_title: "📊 数据记录", btn_report: "🔬 科学报告", th_date: "日期", th_time: "时间", th_zone: "作物", th_temp: "温度", th_hum: "土壤湿度", temp_label: "🌡️ 温度:", soil_label: "🌱 土壤湿度:", air_label: "☁️ 空气湿度:", status_label: "状态:", status_on: "浇水", status_off: "待机", modal_title: "📄 环境分析", lbl_soil_hum: "平均土壤湿度", lbl_act_irr: "活动区域", lbl_air_temp: "平均气温", lbl_rel_hum: "相对湿度 (RH)", lbl_dew_point: "露点", lbl_vpd: "饱和水汽压差", status_ok: "✅ 条件最佳", status_warn: "⚠️ 检查湿度", btn_close: "关闭", sched_next: "⏰ 下次浇水:", music_on: "🎵 音乐开", music_off: "🔇 音乐关", names: ["西红柿", "生菜", "胡萝卜", "辣椒", "系统"] },
+            pt: { title: "Monitor Vegetais Fuji", disclaimer: "ℹ️ Sistema Científico", loading: "Carregando...", loc_denied: "Sem GPS", loc_label: "Local", history_title: "📊 Histórico", btn_report: "🔬 Relatório Científico", th_date: "Data", th_time: "Hora", th_zone: "Cultivo", th_temp: "Temp", th_hum: "Hum. Solo", temp_label: "🌡️ Temp:", soil_label: "🌱 Hum. Solo:", air_label: "☁️ Hum. Ar:", status_label: "Estado:", status_on: "Regando", status_off: "Inativo", modal_title: "📄 Análise Ambiental", lbl_soil_hum: "Hum. Solo Média", lbl_act_irr: "Zonas Ativas", lbl_air_temp: "Temp. Ar Média", lbl_rel_hum: "Hum. Relativa (HR)", lbl_dew_point: "Ponto de Orvalho", lbl_vpd: "DPV (kPa)", status_ok: "✅ CONDIÇÕES ÓTIMAS", status_warn: "⚠️ VERIFICAR UMIDADE", btn_close: "Fechar", sched_next: "⏰ Próx. Rega:", music_on: "🎵 Música On", music_off: "🔇 Música Off", names: ["Tomates", "Alfaces", "Cenouras", "Pimentões", "Sistema"] },
+            fr: { title: "Moniteur Végétal Fuji", disclaimer: "ℹ️ Système Scientifique", loading: "Chargement...", loc_denied: "Pas de GPS", loc_label: "Lieu", history_title: "📊 Historique", btn_report: "🔬 Rapport Scientifique", th_date: "Date", th_time: "Heure", th_zone: "Culture", th_temp: "Temp", th_hum: "Hum. Sol", temp_label: "🌡️ Temp:", soil_label: "🌱 Hum. Sol:", air_label: "☁️ Hum. Air:", status_label: "État:", status_on: "Arrosage", status_off: "Veille", modal_title: "📄 Analyse Environnementale", lbl_soil_hum: "Hum. Sol Moy.", lbl_act_irr: "Zones Actives", lbl_air_temp: "Temp. Air Moy.", lbl_rel_hum: "Hum. Relative (HR)", lbl_dew_point: "Point de Rosée", lbl_vpd: "Déficit PV (kPa)", status_ok: "✅ CONDITIONS OPTIMALES", status_warn: "⚠️ VÉRIFIER HUMIDITÉ", btn_close: "Fermer", sched_next: "⏰ Prochain Arrosage:", music_on: "🎵 Musique On", music_off: "🔇 Musique Off", names: ["Tomates", "Laitues", "Carottes", "Poivrons", "Système"] }
+        };
+
+        const datosHuerto = [
+            { id: 0, temp: 23.5, humSuelo: 55, humAire: 60, riego: false },
+            { id: 1, temp: 21.0, humSuelo: 62, humAire: 65, riego: false },
+            { id: 2, temp: 24.2, humSuelo: 35, humAire: 45, riego: true },
+            { id: 3, temp: 26.5, humSuelo: 28, humAire: 40, riego: false }
+        ];
+
+        let historial = [];
+
+        // --- FUNCIONES DE IDIOMA Y MÚSICA ---
+        function setLanguage(lang) {
+            currentLang = lang;
+            const t = langData[lang];
+            
+            // Iniciar Música Ambient (Tristesse)
+            const audio = document.getElementById('bg-music');
+            audio.volume = 0.3; // Volumen suave
+            audio.play().catch(e => console.log("Play blocked until interaction"));
+            document.getElementById('music-toggle').style.display = 'block'; // Mostrar botón música
+
+            // Transición UI
+            document.getElementById('lang-screen').style.opacity = 0;
+            setTimeout(() => {
+                document.getElementById('lang-screen').style.display = 'none';
+                document.getElementById('main-interface').style.display = 'flex';
+            }, 500);
+
+            actualizarTextos();
+            actualizarReloj();
+            calcularProximoRiego();
+            renderizarTarjetas();
+            iniciarClima();
+            historial.push({ fecha: new Date().toLocaleDateString(), hora: '--', zonaName: 'System', temp: 'OK', hum: 'OK' });
+            renderizarTabla();
+        }
+
+        function actualizarTextos() {
+            const t = langData[currentLang];
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-disclaimer').innerText = t.disclaimer;
+            document.getElementById('weather-loading').innerText = t.loading;
+            document.getElementById('txt-history').innerText = t.history_title;
+            document.getElementById('txt-btn-report').innerText = t.btn_report;
+            document.getElementById('th-date').innerText = t.th_date;
+            document.getElementById('th-time').innerText = t.th_time;
+            document.getElementById('th-zone').innerText = t.th_zone;
+            document.getElementById('th-temp').innerText = t.th_temp;
+            document.getElementById('th-hum').innerText = t.th_hum;
+            document.getElementById('modal-title').innerText = t.modal_title;
+            document.getElementById('lbl-soil-hum').innerText = t.lbl_soil_hum;
+            document.getElementById('lbl-act-irr').innerText = t.lbl_act_irr;
+            document.getElementById('lbl-air-temp').innerText = t.lbl_air_temp;
+            document.getElementById('lbl-rel-hum').innerText = t.lbl_rel_hum;
+            document.getElementById('lbl-dew-point').innerText = t.lbl_dew_point;
+            document.getElementById('lbl-vpd').innerText = t.lbl_vpd;
+            document.getElementById('btn-close').innerText = t.btn_close;
+            
+            // Actualizar botón de música
+            const audio = document.getElementById('bg-music');
+            document.getElementById('music-toggle').innerText = audio.paused ? t.music_off : t.music_on;
+        }
+
+        function toggleMusic() {
+            const audio = document.getElementById('bg-music');
+            const t = langData[currentLang];
+            if (audio.paused) {
+                audio.play();
+                document.getElementById('music-toggle').innerText = t.music_on;
+            } else {
+                audio.pause();
+                document.getElementById('music-toggle').innerText = t.music_off;
+            }
+        }
+
+        function getLocale() {
+            const map = {en:'en-US', es:'es-ES', jp:'ja-JP', cn:'zh-CN', pt:'pt-BR', fr:'fr-FR'};
+            return map[currentLang] || 'en-US';
+        }
+
+        // --- RELOJ Y PROGRAMADOR ---
+        function actualizarReloj() {
+            const ahora = new Date();
+            const locale = getLocale();
+            
+            const h = ahora.getHours().toString().padStart(2, '0');
+            const m = ahora.getMinutes().toString().padStart(2, '0');
+            const s = ahora.getSeconds().toString().padStart(2, '0');
+            const ms = ahora.getMilliseconds().toString().padStart(3, '0');
+
+            document.getElementById('reloj').innerHTML = `${h}:${m}:${s}<span class="clock-ms">.${ms}</span>`;
+            document.getElementById('fecha').innerText = ahora.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
+
+            verificarRiegoAutomatico(ahora);
+            if (ahora.getMilliseconds() < 100) calcularProximoRiego(ahora);
+        }
+
+        function verificarRiegoAutomatico(fecha) {
+            const h = fecha.getHours();
+            const m = fecha.getMinutes();
+            const s = fecha.getSeconds();
+            const trigger = (h === 5 && m === 0) || (h === 21 && m === 30);
+            if (trigger && s === 0 && fecha.getMilliseconds() < 100) {
+                if(!datosHuerto[0].riego) activarCicloRiego();
+            }
+        }
+
+        function activarCicloRiego() {
+            datosHuerto.forEach(z => z.riego = true);
+            renderizarTarjetas();
+            historial.push({ fecha: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), zonaName: 'AUTO-SCHED', temp: 'ON', hum: 'ALL' });
+            renderizarTabla();
+            setTimeout(() => { datosHuerto.forEach(z => z.riego = false); renderizarTarjetas(); }, 60000); 
+        }
+
+        function calcularProximoRiego(now = new Date()) {
+            const h = now.getHours();
+            const m = now.getMinutes();
+            const curMins = h * 60 + m;
+            let next = "05:00";
+            if (curMins < 300) next = "05:00";
+            else if (curMins < 1290) next = "21:30";
+            else next = "05:00 (+1)";
+            document.getElementById('sched-info').innerText = `${langData[currentLang].sched_next} ${next}`;
+        }
+
+        // --- SISTEMAS ---
+        function iniciarClima() {
+            if (!navigator.geolocation) return;
+            navigator.geolocation.getCurrentPosition(pos => {
+                obtenerClima(pos.coords.latitude, pos.coords.longitude);
+            }, () => {});
+        }
+
+        async function obtenerClima(lat, lon) {
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+                const data = await res.json();
+                document.getElementById('weather-temp').innerText = `${data.current_weather.temperature}°C`;
+                document.getElementById('weather-content').style.display = 'block';
+                document.getElementById('weather-loading').style.display = 'none';
+            } catch (e) { console.log(e); }
+        }
+
+        function renderizarTarjetas() {
+            const contenedor = document.getElementById('app');
+            const t = langData[currentLang];
+            let html = '';
+            datosHuerto.forEach(z => {
+                const nombre = t.names[z.id];
+                const alerta = z.humSuelo < 40 ? 'alert-low' : '';
+                const estado = z.riego ? 'status-active' : 'status-inactive';
+                const txtEstado = z.riego ? t.status_on : t.status_off;
+                html += `
+                    <div class="card ${alerta}">
+                        <h2>${nombre}</h2>
+                        <div class="card-detail"><span class="label">${t.temp_label}</span><span class="value">${z.temp} °C</span></div>
+                        <div class="card-detail"><span class="label">${t.soil_label}</span><span class="value">${z.humSuelo} %</span></div>
+                        <div class="card-detail"><span class="label">${t.air_label}</span><span class="value" style="color:#0277bd;">${z.humAire} %</span></div>
+                        <div class="card-detail"><span class="label">${t.status_label}</span><span class="status-badge ${estado}">${txtEstado}</span></div>
+                    </div>`;
+            });
+            contenedor.innerHTML = html;
+        }
+
+        function renderizarTabla() {
+            const tbody = document.getElementById('tabla-stats');
+            tbody.innerHTML = historial.slice().reverse().slice(0, 5).map(r => `
+                <tr><td>${r.fecha}</td><td>${r.hora}</td><td>${r.zonaName}</td><td>${r.temp}</td><td>${r.hum}</td></tr>
+            `).join('');
+        }
+
+        function generarInforme() {
+            const t = langData[currentLang];
+            const ahora = new Date();
+            const locale = getLocale();
+            let sumTemp = 0, sumSoil = 0, sumAir = 0, countRiego = 0;
+            datosHuerto.forEach(z => { sumTemp += z.temp; sumSoil += z.humSuelo; sumAir += z.humAire; if(z.riego) countRiego++; });
+            const avgTemp = sumTemp / datosHuerto.length;
+            const avgSoil = sumSoil / datosHuerto.length;
+            const avgAirRH = sumAir / datosHuerto.length;
+            const a = 17.27, b = 237.7;
+            const alpha = ((a * avgTemp) / (b + avgTemp)) + Math.log(avgAirRH/100);
+            const dewPoint = (b * alpha) / (a - alpha);
+            const svp = 0.61078 * Math.exp((17.27 * avgTemp) / (avgTemp + 237.3));
+            const vpd = svp * (1 - (avgAirRH / 100));
+
+            document.getElementById('modal-fecha').innerText = ahora.toLocaleString(locale);
+            document.getElementById('avg-soil-hum').innerText = `${avgSoil.toFixed(1)} %`;
+            document.getElementById('active-water').innerText = countRiego;
+            document.getElementById('avg-air-temp').innerText = `${avgTemp.toFixed(1)} °C`;
+            document.getElementById('avg-rel-hum').innerText = `${avgAirRH.toFixed(1)} %`;
+            document.getElementById('val-dew-point').innerText = `${dewPoint.toFixed(1)} °C`;
+            document.getElementById('val-vpd').innerText = `${vpd.toFixed(2)} kPa`;
+
+            const statusBox = document.getElementById('general-status');
+            if(avgSoil < 40 || vpd > 1.5) {
+                statusBox.innerText = t.status_warn; statusBox.style.color = '#d50000'; statusBox.style.background = '#ffebee';
+            } else {
+                statusBox.innerText = t.status_ok; statusBox.style.color = '#2e7d32'; statusBox.style.background = '#e8f5e9';
+            }
+            historial.push({ fecha: ahora.toLocaleDateString(locale), hora: ahora.toLocaleTimeString(locale), zonaName: 'REPORT', temp: avgTemp.toFixed(1), hum: avgSoil.toFixed(1) });
+            renderizarTabla();
+            document.getElementById('modalReporte').style.display = 'flex';
+        }
+
+        function cerrarModal() { document.getElementById('modalReporte').style.display = 'none'; }
+        window.onclick = function(e) { if(e.target == document.getElementById('modalReporte')) cerrarModal(); }
+
+        setInterval(actualizarReloj, 50);
+    </script>
+</body>
+</html>
