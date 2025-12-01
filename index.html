@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Riegos & Estadísticas</title>
+    <style>
+        /* --- ESTILOS GENERALES --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        /* --- HEADER --- */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            max-width: 800px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+        }
+
+        .disclaimer {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 0.85rem;
+            border: 1px solid #bbdefb;
+        }
+
+        /* --- CONTENEDOR DE TARJETAS (GRID) --- */
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 40px;
+        }
+
+        /* --- ESTILOS COMUNES DE TARJETAS --- */
+        .card {
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            padding: 25px;
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Tarjetas de Cultivo */
+        .cultivo-card {
+            border-top: 5px solid #4caf50;
+        }
+        .cultivo-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .cultivo-card h2 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .card-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 1rem;
+        }
+
+        .label { color: #7f8c8d; font-weight: 500; }
+        .value { font-weight: bold; color: #2c3e50; }
+
+        /* Estado Riego */
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-active { background-color: #e8f5e9; color: #2e7d32; }
+        .status-inactive { background-color: #eceff1; color: #546e7a; }
+        
+        /* Alerta */
+        .alert-low-humidity { background-color: #fff5f5; border-top-color: #ef5350; }
+        .alert-low-humidity .value-humedad { color: #c62828; }
+
+        /* --- SECCIÓN RELOJ Y FECHA (NUEVO) --- */
+        .clock-section {
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .clock-card {
+            background: linear-gradient(135deg, #2e7d32, #66bb6a);
+            color: white;
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .clock-time {
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .clock-date {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        /* --- SECCIÓN ESTADÍSTICAS (NUEVO) --- */
+        .stats-section {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stats-card {
+            border-top: 5px solid #3498db;
+        }
+
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .stats-table th, .stats-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .stats-table th {
+            background-color: #f8f9fa;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .stats-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .btn-capture {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn-capture:hover { background-color: #2980b9; }
+
+        /* Footer */
+        footer { margin-top: 50px; color: #95a5a6; font-size: 0.85rem; }
+        
+        /* Responsive Table */
+        @media (max-width: 600px) {
+            .stats-table th, .stats-table td { font-size: 0.85rem; padding: 8px; }
+            .clock-time { font-size: 2.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Monitor de Riegos - Huerto de Vegetales</h1>
+        <div class="disclaimer">
+            ℹ️ Simulación: Sistema con Estadísticas en Tiempo Real
+        </div>
+    </header>
+
+    <!-- 1. SECCIÓN DE RELOJ Y FECHA -->
+    <div class="clock-section">
+        <div class="card clock-card">
+            <div id="reloj" class="clock-time">00:00:00</div>
+            <div id="fecha" class="clock-date">Cargando fecha...</div>
+        </div>
+    </div>
+
+    <!-- 2. TARJETAS DE LOS CULTIVOS -->
+    <div id="app" class="card-container">
+        <!-- Se llena con JS -->
+    </div>
+
+    <!-- 3. SECCIÓN DE ESTADÍSTICAS / REGISTROS -->
+    <div class="stats-section">
+        <div class="card stats-card">
+            <div class="stats-header">
+                <h3>📊 Registro Histórico de Temperaturas (Simulado)</h3>
+                <button class="btn-capture" onclick="capturarDatosActuales()">📸 Capturar Estado Actual</button>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cultivo / Zona</th>
+                            <th>Temperatura</th>
+                            <th>Humedad</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-stats">
+                        <!-- Filas generadas por JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2023 Monitor Inteligente - Listo para Vercel
+    </footer>
+
+    <script>
+        // --- 1. DATOS DEL HUERTO ---
+        const datosHuerto = [
+            { id: 1, nombre: "Tomates", humedad: 55, temp: 23.5, riego: false },
+            { id: 2, nombre: "Lechugas", humedad: 62, temp: 21.0, riego: false },
+            { id: 3, nombre: "Zanahorias", humedad: 35, temp: 24.2, riego: true },
+            { id: 4, nombre: "Pimentones", humedad: 28, temp: 26.5, riego: false }
+        ];
+
+        // --- 2. DATOS DE ESTADÍSTICAS (Historial Inicial Simulado) ---
+        let historial = [
+            { fecha: 'Hoy', hora: '08:00:00', zona: 'Tomates', temp: '20.1 °C', hum: '58%' },
+            { fecha: 'Hoy', hora: '09:30:00', zona: 'Lechugas', temp: '19.5 °C', hum: '65%' },
+            { fecha: 'Hoy', hora: '10:15:00', zona: 'Pimentones', temp: '24.0 °C', hum: '30%' }
+        ];
+
+        // --- 3. FUNCIONES DEL RELOJ ---
+        function actualizarReloj() {
+            const ahora = new Date();
+            
+            // Formato Hora
+            const horaStr = ahora.toLocaleTimeString('es-CL');
+            document.getElementById('reloj').textContent = horaStr;
+
+            // Formato Fecha
+            const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const fechaStr = ahora.toLocaleDateString('es-ES', opcionesFecha);
+            // Capitalizar primera letra
+            document.getElementById('fecha').textContent = fechaStr.charAt(0).toUpperCase() + fechaStr.slice(1);
+        }
+
+        // --- 4. RENDERIZADO DE TARJETAS ---
+        function renderizarTarjetas() {
+            const contenedor = document.getElementById('app');
+            let html = '';
+
+            datosHuerto.forEach(z => {
+                const esCritico = z.humedad < 40;
+                const claseAlerta = esCritico ? 'alert-low-humidity' : '';
+                const textoRiego = z.riego ? 'Regando 💧' : 'Apagado';
+                const claseEstado = z.riego ? 'status-active' : 'status-inactive';
+
+                html += `
+                    <div class="card cultivo-card ${claseAlerta}">
+                        <h2>${z.nombre}</h2>
+                        <div class="card-detail">
+                            <span class="label">🌡️ Temp:</span>
+                            <span class="value">${z.temp} °C</span>
+                        </div>
+                        <div class="card-detail">
+                            <span class="label">💧 Humedad:</span>
+                            <span class="value value-humedad">${z.humedad} %</span>
+                        </div>
+                        <div class="card-detail">
+                            <span class="label">Estado:</span>
+                            <span class="status-badge ${claseEstado}">${textoRiego}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            contenedor.innerHTML = html;
+        }
+
+        // --- 5. RENDERIZADO DE LA TABLA DE ESTADÍSTICAS ---
+        function renderizarTabla() {
+            const tbody = document.getElementById('tabla-stats');
+            let htmlTabla = '';
+
+            // Mostrar los últimos 5 registros (invertido para ver el más nuevo arriba)
+            const historialVisible = [...historial].reverse().slice(0, 8);
+
+            historialVisible.forEach(reg => {
+                htmlTabla += `
+                    <tr>
+                        <td>${reg.fecha}</td>
+                        <td>${reg.hora}</td>
+                        <td>${reg.zona}</td>
+                        <td>${reg.temp}</td>
+                        <td>${reg.hum}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = htmlTabla;
+        }
+
+        // --- 6. FUNCIÓN PARA CAPTURAR DATOS "AHORA" ---
+        function capturarDatosActuales() {
+            const ahora = new Date();
+            const fecha = ahora.toLocaleDateString('es-ES');
+            const hora = ahora.toLocaleTimeString('es-CL');
+
+            // Simulamos tomar el dato del primer cultivo (o uno aleatorio) para el ejemplo
+            // En un sistema real, esto guardaría todos. Aquí guardamos uno al azar para variar.
+            const cultivoRandom = datosHuerto[Math.floor(Math.random() * datosHuerto.length)];
+
+            const nuevoRegistro = {
+                fecha: fecha,
+                hora: hora,
+                zona: cultivoRandom.nombre,
+                temp: cultivoRandom.temp + ' °C',
+                hum: cultivoRandom.humedad + ' %'
+            };
+
+            historial.push(nuevoRegistro);
+            renderizarTabla();
+            
+            // Efecto visual simple (alert)
+            alert(`✅ Datos capturados para ${cultivoRandom.nombre} a las ${hora}`);
+        }
+
+        // --- INICIALIZACIÓN ---
+        setInterval(actualizarReloj, 1000); // Actualiza reloj cada segundo
+        actualizarReloj(); // Ejecutar inmediatamente
+        renderizarTarjetas();
+        renderizarTabla();
+
+    </script>
+</body>
+</html>
